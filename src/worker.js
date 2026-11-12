@@ -32,6 +32,9 @@ function toLevel(v) {
 // houver, descarta o id antes de procurar o número.
 export function parseState(text, id) {
   const t = String(text || "").replace(/<[^>]*>/g, " ").trim();
+  // Formato da Home Manager: "ID:57|STATUS:80"
+  const hm = /\bSTATUS\s*:\s*([A-Za-z0-9.]+)/i.exec(t);
+  if (hm && toLevel(hm[1]) !== null) return { level: toLevel(hm[1]) };
   const keyed = /\b(valor|value|status|estado|state|nivel|level|dimmer)\b\s*["']?\s*[:=]\s*["']?\s*([A-Za-z0-9.]+)/i.exec(t);
   if (keyed) {
     const lv = toLevel(keyed[2]);

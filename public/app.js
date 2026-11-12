@@ -309,5 +309,5 @@ renderAll();
   }
   if (needPin) askPin(); // refresh acontece após digitar o PIN
   else refresh(true);
-  setInterval(() => document.visibilityState === "visible" && refresh(true), 30000);
+  setInterval(() => document.visibilityState === "visible" && refresh(true), 60000);
 })();
