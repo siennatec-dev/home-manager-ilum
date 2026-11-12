@@ -1,10 +1,8 @@
-import { DEVICES, GROUPS, COLORS } from "./devices.js";
+import { DEVICES, GROUPS } from "./devices.js";
 
 const $ = (s) => document.querySelector(s);
-const COLOR = Object.fromEntries(COLORS.map((c) => [c.k, c]));
 const ICONS = {
   bulb: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.45 1 1.1 1 1.85V16h5v-.25c0-.75.4-1.4 1-1.85A6 6 0 0 0 12 3Z"/></svg>',
-  strip: '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="6" rx="3"/><path d="M7 12h.01M12 12h.01M17 12h.01M7 5v2M12 4v3M17 5v2M7 17v2M12 17v3M17 17v2"/></svg>',
   more: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
 };
 
@@ -15,7 +13,7 @@ const store = {
 };
 const saved = store.get("hm.states", {});
 const state = Object.fromEntries(
-  DEVICES.map((d) => [d.id, { level: null, last: 100, color: d.type === "rgb" ? "w" : null, ...saved[d.id] }])
+  DEVICES.map((d) => [d.id, { level: null, last: 100, ...saved[d.id] }])
 );
 const seq = {};
 let demo = new URLSearchParams(location.search).has("demo");
@@ -35,22 +33,17 @@ async function api(path) {
   return data;
 }
 
-function valueFor(d, level, color) {
-  return d.type === "rgb" ? `${level}_${color || "w"}` : String(level);
-}
-
-async function setLevel(d, level, color = state[d.id].color) {
+async function setLevel(d, level) {
   level = Math.max(0, Math.min(100, Math.round(level / 5) * 5));
   const s = state[d.id];
   const prev = { ...s };
   s.level = level;
-  if (color) s.color = color;
   if (level > 0) s.last = level;
   renderTile(d); renderSheet();
   const my = (seq[d.id] = (seq[d.id] || 0) + 1);
   markPending(d, true);
   try {
-    await api(`/api/command?id=${d.id}&valor=${encodeURIComponent(valueFor(d, level, s.color))}`);
+    await api(`/api/command?id=${d.id}&valor=${level}`);
     persist();
   } catch (e) {
     if (seq[d.id] === my) { Object.assign(s, prev); renderTile(d); renderSheet(); }
@@ -75,7 +68,6 @@ async function refresh(silent = false) {
       known++;
       state[id].level = st.level;
       if (st.level > 0) state[id].last = st.level;
-      if (st.color) state[id].color = st.color;
     }
     persist(); renderAll();
     setConn(known ? "ok" : "err", known ? "Conectado" : "Sem status da central");
@@ -96,11 +88,7 @@ function stateText(d) {
   const s = state[d.id];
   if (s.level === null) return "Sem status";
   if (s.level === 0) return "Desligado";
-  if (d.type === "rgb") return `${s.level}% · ${COLOR[s.color]?.name || ""}`;
   return `${s.level}%`;
-}
-function accent(d) {
-  return d.type === "rgb" ? COLOR[state[d.id].color]?.hex || "#fff" : "#ffcc4d";
 }
 
 function renderAll() {
@@ -127,11 +115,10 @@ function renderTile(d) {
   const el = document.getElementById(`t${d.id}`);
   if (el) {
     el.classList.toggle("on", isOn(d));
-    el.style.setProperty("--c", accent(d));
     el.setAttribute("aria-pressed", String(isOn(d)));
     el.setAttribute("aria-label", `${d.name}, ${stateText(d)}`);
     el.innerHTML = `
-      <span class="tile-ico">${d.type === "rgb" ? ICONS.strip : ICONS.bulb}</span>
+      <span class="tile-ico">${ICONS.bulb}</span>
       <span class="more" data-more aria-hidden="true">${ICONS.more}</span>
       <span><div class="tile-name">${d.name}</div><div class="tile-state">${stateText(d)}</div></span>`;
   }
@@ -171,11 +158,6 @@ function toast(msg, err = false) {
 let current = null;
 function openSheet(d) {
   current = d;
-  const sw = $("#swatches");
-  sw.hidden = d.type !== "rgb";
-  if (d.type === "rgb") {
-    sw.innerHTML = COLORS.map((c) => `<button class="sw" style="--c:${c.hex}" data-color="${c.k}" aria-label="${c.name}" title="${c.name}"></button>`).join("");
-  }
   $("#sheet").hidden = false;
   renderSheet();
   $("#slider").focus({ preventScroll: true });
@@ -189,15 +171,12 @@ function renderSheet(previewLevel) {
   $("#sheetName").textContent = d.name;
   $("#sheetState").textContent = previewLevel !== undefined ? (lvl ? `${lvl}%` : "Desligado") : stateText(d);
   const ico = $("#sheetIco");
-  ico.innerHTML = d.type === "rgb" ? ICONS.strip : ICONS.bulb;
+  ico.innerHTML = ICONS.bulb;
   ico.classList.toggle("lit", lvl > 0);
-  ico.style.setProperty("--c", accent(d));
   const slider = $("#slider");
-  slider.style.setProperty("--c", accent(d));
   slider.setAttribute("aria-valuenow", lvl);
   $("#sliderFill").style.height = `${lvl}%`;
   $("#sliderLabel").textContent = `${lvl}%`;
-  document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("active", b.dataset.color === s.color));
 }
 
 function sliderSetup() {
@@ -286,9 +265,7 @@ $("#chips").addEventListener("click", (e) => {
 $("#sheet").addEventListener("click", (e) => {
   if (e.target.closest("[data-close]")) return closeSheet();
   const lv = e.target.closest("[data-level]");
-  if (lv && current) return setLevel(current, Number(lv.dataset.level));
-  const sw = e.target.closest("[data-color]");
-  if (sw && current) setLevel(current, state[current.id].level || state[current.id].last || 100, sw.dataset.color);
+  if (lv && current) setLevel(current, Number(lv.dataset.level));
 });
 document.addEventListener("keydown", (e) => e.key === "Escape" && !$("#sheet").hidden && closeSheet());
 
@@ -324,8 +301,6 @@ renderAll();
   if (demo) {
     setConn("demo", "Modo demonstração");
     DEVICES.forEach((d, i) => { if (state[d.id].level === null) state[d.id].level = [0, 80, 0, 100, 45][i % 5]; });
-    if (state[94]) state[94].color = "u";
-    if (state[98]) state[98].color = "c";
     renderAll();
     return;
   }

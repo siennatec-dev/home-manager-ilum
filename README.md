@@ -17,10 +17,10 @@ Celular/navegador ──HTTPS──▶ Cloudflare Worker ──HTTP :9090──�
 O navegador não consegue chamar `http://...:9090` direto de um site HTTPS (bloqueio de
 *mixed content* e CORS). Por isso o Worker serve a interface e repassa os comandos.
 Ele só aceita os IDs listados em `public/devices.js` e valores válidos
-(dimmer `0–100` em passos de 5; RGB `nível_cor`, ex. `50_r`).
+(dimmer `0–100` em passos de 5).
 
 **Uso:** toque no bloco = liga/desliga · toque na seta `›` ou segure = painel com
-slider de intensidade (e cores, nos RGB) · “Ligar/Desligar tudo” age no filtro atual.
+slider de intensidade · “Ligar/Desligar tudo” age no filtro atual.
 
 ## Editar dispositivos
 
@@ -38,8 +38,8 @@ npx wrangler secret put APP_PIN     # PIN pedido no app (recomendado!)
 npx wrangler deploy
 ```
 
-O app fica em `https://hm-iluminacao.<sua-conta>.workers.dev`. Para usar domínio próprio:
-painel Cloudflare → Workers & Pages → hm-iluminacao → Settings → Domains & Routes.
+O app fica em `https://home-manager-ilum.<sua-conta>.workers.dev`. Para usar domínio próprio:
+painel Cloudflare → Workers & Pages → home-manager-ilum → Settings → Domains & Routes.
 
 Alternativa sem terminal: painel Cloudflare → Workers & Pages → Create → **Import a
 repository** → selecione este repositório do GitHub (deploy automático a cada push).

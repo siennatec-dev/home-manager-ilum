@@ -3,7 +3,6 @@
 import { DEVICES } from "../public/devices.js";
 
 const BY_ID = new Map(DEVICES.map((d) => [String(d.id), d]));
-const RGB_LETTERS = "wrgbcyplnumhe";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -12,27 +11,17 @@ function json(data, status = 200) {
   });
 }
 
-function validValue(device, v) {
+// Dimmer: 0..100 em passos de 5, INV ou ? (consulta)
+function validValue(v) {
   if (v === "?" || v === "INV") return true;
-  if (device.type === "dimmer") {
-    if (!/^\d{1,3}$/.test(v)) return false;
-    const n = Number(v);
-    return n >= 0 && n <= 100 && n % 5 === 0;
-  }
-  if (device.type === "rgb") {
-    const m = /^(\d{1,3})_([a-z])$/.exec(v);
-    if (!m) return false;
-    const n = Number(m[1]);
-    return n >= 0 && n <= 100 && n % 5 === 0 && RGB_LETTERS.includes(m[2]);
-  }
-  return false;
+  if (!/^\d{1,3}$/.test(v)) return false;
+  const n = Number(v);
+  return n <= 100 && n % 5 === 0;
 }
 
-// Interpreta a resposta do "?" (formato livre: tenta 50_r, ON/OFF ou um número)
-export function parseState(device, text) {
+// Interpreta a resposta do "?" (formato livre: tenta ON/OFF ou um número)
+export function parseState(text) {
   const t = String(text || "").replace(/<[^>]*>/g, " ").trim();
-  const rgb = /(\d{1,3})_([a-z])/i.exec(t);
-  if (rgb) return { level: Math.min(100, Number(rgb[1])), color: rgb[2].toLowerCase() };
   if (/\bOFF\b|desligad/i.test(t)) return { level: 0 };
   const num = /(?:^|[^\d])(\d{1,3})(?:[^\d]|$)/.exec(t);
   if (num && Number(num[1]) <= 100) return { level: Number(num[1]) };
@@ -67,10 +56,10 @@ async function handleApi(request, env, url) {
     const valor = (url.searchParams.get("valor") || "").trim();
     const device = BY_ID.get(id);
     if (!device) return json({ ok: false, error: "Dispositivo não permitido" }, 400);
-    if (!validValue(device, valor)) return json({ ok: false, error: "Valor inválido" }, 400);
+    if (!validValue(valor)) return json({ ok: false, error: "Valor inválido" }, 400);
     try {
       const r = await sendToHM(env, id, valor);
-      return json({ ...r, state: parseState(device, r.body) }, r.ok ? 200 : 502);
+      return json({ ...r, state: parseState(r.body) }, r.ok ? 200 : 502);
     } catch (e) {
       return json({ ok: false, error: `Sem resposta da automação (${e.name})` }, 504);
     }
@@ -84,7 +73,7 @@ async function handleApi(request, env, url) {
       for (let d = queue.shift(); d; d = queue.shift()) {
         try {
           const r = await sendToHM(env, d.id, "?");
-          out[d.id] = r.ok ? parseState(d, r.body) : { level: null };
+          out[d.id] = r.ok ? parseState(r.body) : { level: null };
         } catch {
           out[d.id] = { level: null };
         }

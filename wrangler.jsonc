@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hm-iluminacao",
+  "name": "home-manager-ilum",
   "main": "src/worker.js",
   // >= 2024-09-02 habilita portas customizadas (:9090) no fetch()
   "compatibility_date": "2025-10-01",
