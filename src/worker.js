@@ -87,7 +87,7 @@ async function handleApi(request, env, url) {
   }
 
   if (url.pathname === "/api/status") {
-    // Consulta "?" de todos os dispositivos, 4 por vez para não sobrecarregar a central
+    // Consulta "?" de todos os dispositivos, 5 por vez para não sobrecarregar a central
     const out = {};
     const queue = [...DEVICES];
     const worker = async () => {
@@ -100,7 +100,7 @@ async function handleApi(request, env, url) {
         }
       }
     };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    await Promise.all([worker(), worker(), worker(), worker(), worker()]);
     return json({ ok: true, states: out });
   }
 

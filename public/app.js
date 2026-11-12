@@ -56,11 +56,16 @@ async function setLevel(d, level) {
 }
 
 const isOn = (d) => (state[d.id].level || 0) > 0;
-const toggle = (d) => setLevel(d, isOn(d) ? 0 : state[d.id].last || 100);
+// Toque no bloco: liga sempre em 100% (intensidade fina fica no painel)
+const toggle = (d) => setLevel(d, isOn(d) ? 0 : 100);
+
+let refreshing = false;
 
 async function refresh(silent = false) {
+  if (refreshing) return; // evita consultas sobrepostas
+  refreshing = true;
   const btn = $("#refresh");
-  btn.classList.add("spin");
+  if (!silent) btn.classList.add("spin");
   try {
     if (demo) return;
     const data = await api("/api/status");
@@ -79,6 +84,7 @@ async function refresh(silent = false) {
     if (!silent) toast(e.message, true);
   } finally {
     btn.classList.remove("spin");
+    refreshing = false;
   }
 }
 
@@ -279,7 +285,7 @@ document.querySelectorAll("[data-scene]").forEach((b) =>
     if (!targets.length) return toast(on ? "Já está tudo aceso" : "Já está tudo apagado");
     // Envia em sequência curta para não sobrecarregar a central
     for (let i = 0; i < targets.length; i += 3) {
-      await Promise.all(targets.slice(i, i + 3).map((d) => setLevel(d, on ? state[d.id].last || 100 : 0)));
+      await Promise.all(targets.slice(i, i + 3).map((d) => setLevel(d, on ? 100 : 0)));
     }
     toast(on ? "Luzes acesas" : "Luzes apagadas");
   })
@@ -309,5 +315,5 @@ renderAll();
   }
   if (needPin) askPin(); // refresh acontece após digitar o PIN
   else refresh(true);
-  setInterval(() => document.visibilityState === "visible" && refresh(true), 60000);
+  setInterval(() => document.visibilityState === "visible" && refresh(true), 5000);
 })();
