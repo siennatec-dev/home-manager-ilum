@@ -19,13 +19,20 @@ O navegador não consegue chamar `http://...:9090` direto de um site HTTPS (bloq
 Ele só aceita os IDs listados em `public/devices.js` e valores válidos
 (dimmer `0–100` em passos de 5).
 
-**Uso:** toque no bloco = liga/desliga · toque na seta `›` ou segure = painel com
-slider de intensidade · “Ligar/Desligar tudo” age no filtro atual.
+## Recursos
+
+- **Blocos de luz:** toque liga (100%)/desliga · arraste para os lados para dimerizar · segure (ou botão direito) para o painel com slider, atalhos 25–100%, favorito e personalização (nome, ícone, ambiente).
+- **Ambientes:** slider master e chave liga/desliga por ambiente; crie, renomeie e reordene em Ajustes → Ambientes.
+- **Cenas:** um toque aplica; segure para editar. Crie capturando o estado atual ou ajustando luz a luz. A cena acesa fica destacada.
+- **Agenda:** executa cenas em horários fixos ou no nascer/pôr do sol (com ajuste ±min), por dia da semana — roda no servidor (Cron do Worker, a cada minuto), mesmo com o app fechado.
+- **Favoritos, atividade recente, modo painel de parede** (tela sempre ligada) e status com modo econômico (3 s → 5 s → 10 s → parado em segundo plano).
+
+Cenas, agenda e personalização ficam no KV do Cloudflare (`CONFIG`), então valem para todos os aparelhos.
 
 ## Editar dispositivos
 
-Tudo fica em `public/devices.js` (nome, grupo, tipo). Os IDs vêm da “Lista de Dispositivos”
-da Home Manager.
+A lista de circuitos (ID na Home Manager, nome e ambiente padrão) fica em `public/devices.js`.
+Nomes, ícones e ambientes também podem ser mudados pelo próprio app.
 
 ## Publicar no Cloudflare
 

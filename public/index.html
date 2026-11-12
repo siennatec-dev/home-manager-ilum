@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Iluminação</title>
   <meta name="theme-color" content="#0b0d14">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,68 +15,46 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="bg" aria-hidden="true"><i></i><i></i><i></i><b id="glow"></b></div>
 
   <main class="app">
     <header class="top">
-      <div>
-        <p class="eyebrow"><span id="conn" class="dot"></span><span id="connText">Conectando…</span></p>
-        <h1>Iluminação</h1>
+      <div class="top-text">
+        <button id="connBtn" class="eyebrow" title="Atualizar agora"><span id="conn" class="dot"></span><span id="connText">Conectando…</span></button>
+        <h1 id="greeting">Iluminação</h1>
         <p id="summary" class="summary">—</p>
       </div>
-      <button id="refresh" class="icon-btn glass" aria-label="Atualizar estados">
-        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" /></svg>
-      </button>
+      <div class="top-actions">
+        <button id="allOff" class="icon-btn glass" aria-label="Apagar tudo" title="Apagar tudo"></button>
+        <button id="settingsBtn" class="icon-btn glass" aria-label="Ajustes" title="Ajustes"></button>
+      </div>
     </header>
 
-    <section class="scenes">
-      <button class="scene glass" data-scene="on">
-        <span class="scene-ico on"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.45 1 1.1 1 1.85V16h5v-.25c0-.75.4-1.4 1-1.85A6 6 0 0 0 12 3Z"/></svg></span>
-        <span>Ligar tudo</span>
-      </button>
-      <button class="scene glass" data-scene="off">
-        <span class="scene-ico"><svg viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></span>
-        <span>Desligar tudo</span>
-      </button>
+    <section class="block">
+      <div class="block-head">
+        <h2>Cenas</h2>
+        <button class="link" id="manageScenes">Editar</button>
+      </div>
+      <div id="scenes" class="scenes"></div>
     </section>
 
-    <nav id="chips" class="chips"></nav>
-    <div id="rooms"></div>
-    <p class="foot">Home Manager · Comercial</p>
+    <nav id="chips" class="chips" aria-label="Filtrar ambientes"></nav>
+    <div id="content"></div>
+    <p class="foot">Toque para ligar/desligar · arraste para os lados para ajustar · segure para mais opções</p>
   </main>
 
-  <!-- Painel de controle (estilo HomeKit) -->
   <div id="sheet" class="sheet" hidden>
     <div class="sheet-backdrop" data-close></div>
-    <div class="sheet-card glass-strong" role="dialog" aria-modal="true" aria-labelledby="sheetName">
-      <div class="sheet-head">
-        <div class="tile-ico big" id="sheetIco"></div>
-        <div>
-          <h2 id="sheetName">—</h2>
-          <p id="sheetState">—</p>
-        </div>
-        <button class="close" data-close aria-label="Fechar">✕</button>
-      </div>
-      <div class="slider" id="slider" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="100">
-        <div class="slider-fill" id="sliderFill"></div>
-        <div class="slider-label" id="sliderLabel">0%</div>
-      </div>
-      <div class="sheet-actions">
-        <button class="pill glass" data-level="0">Desligar</button>
-        <button class="pill glass" data-level="50">50%</button>
-        <button class="pill glass" data-level="100">100%</button>
-      </div>
-    </div>
+    <div id="sheetCard" class="sheet-card glass-strong" role="dialog" aria-modal="true"></div>
   </div>
 
-  <!-- PIN -->
   <div id="pinBox" class="sheet" hidden>
     <div class="sheet-backdrop"></div>
     <form id="pinForm" class="sheet-card glass-strong pin">
       <h2>PIN de acesso</h2>
       <p>Digite o PIN configurado no Cloudflare.</p>
       <input id="pinInput" type="password" inputmode="numeric" autocomplete="current-password" required>
-      <button class="pill primary" type="submit">Entrar</button>
+      <button class="btn primary wide" type="submit">Entrar</button>
     </form>
   </div>
 
