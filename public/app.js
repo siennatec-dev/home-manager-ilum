@@ -11,11 +11,12 @@ const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const saved = store.get("hm.states", {});
+const saved = store.get("hm.states.v2", {});
 const state = Object.fromEntries(
   DEVICES.map((d) => [d.id, { level: null, last: 100, ...saved[d.id] }])
 );
 const seq = {};
+const touched = {}; // último clique por dispositivo (ms)
 let demo = new URLSearchParams(location.search).has("demo");
 let pin = store.get("hm.pin", "");
 let filter = store.get("hm.filter", "all");
@@ -40,6 +41,7 @@ async function setLevel(d, level) {
   s.level = level;
   if (level > 0) s.last = level;
   renderTile(d); renderSheet();
+  touched[d.id] = Date.now();
   const my = (seq[d.id] = (seq[d.id] || 0) + 1);
   markPending(d, true);
   try {
@@ -66,6 +68,7 @@ async function refresh(silent = false) {
     for (const [id, st] of Object.entries(data.states || {})) {
       if (!state[id] || st.level === null || st.level === undefined) continue;
       known++;
+      if (Date.now() - (touched[id] || 0) < 8000) continue; // não sobrescreve clique recente
       state[id].level = st.level;
       if (st.level > 0) state[id].last = st.level;
     }
@@ -80,7 +83,7 @@ async function refresh(silent = false) {
 }
 
 function persist() {
-  store.set("hm.states", Object.fromEntries(DEVICES.map((d) => [d.id, state[d.id]])));
+  store.set("hm.states.v2", Object.fromEntries(DEVICES.map((d) => [d.id, state[d.id]])));
 }
 
 // ---------- Render ----------

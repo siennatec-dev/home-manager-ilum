@@ -19,11 +19,29 @@ function validValue(v) {
   return n <= 100 && n % 5 === 0;
 }
 
-// Interpreta a resposta do "?" (formato livre: tenta ON/OFF ou um número)
-export function parseState(text) {
+function toLevel(v) {
+  const s = String(v).trim();
+  if (/^(OFF|DESLIGADO|false)$/i.test(s)) return 0;
+  if (/^(ON|LIGADO|true)$/i.test(s)) return 100;
+  if (/^\d{1,3}(\.\d+)?$/.test(s) && Number(s) <= 100) return Math.round(Number(s));
+  return null;
+}
+
+// Interpreta a resposta do "?". A central repete o id na resposta, então
+// primeiro procura um campo de valor (valor=, "valor":, status...) e, se não
+// houver, descarta o id antes de procurar o número.
+export function parseState(text, id) {
   const t = String(text || "").replace(/<[^>]*>/g, " ").trim();
+  const keyed = /\b(valor|value|status|estado|state|nivel|level|dimmer)\b\s*["']?\s*[:=]\s*["']?\s*([A-Za-z0-9.]+)/i.exec(t);
+  if (keyed) {
+    const lv = toLevel(keyed[2]);
+    if (lv !== null) return { level: lv };
+  }
   if (/\bOFF\b|desligad/i.test(t)) return { level: 0 };
-  const num = /(?:^|[^\d])(\d{1,3})(?:[^\d]|$)/.exec(t);
+  // remove "id=57" / "id":57 e depois a primeira ocorrência solta do id
+  let rest = t.replace(new RegExp(`\\bid\\b\\s*["']?\\s*[:=]\\s*["']?\\s*${id}\\b`, "gi"), " ");
+  if (rest === t) rest = t.replace(new RegExp(`(^|[^\\d])${id}(?!\\d)`), "$1 ");
+  const num = /(?:^|[^\d])(\d{1,3})(?:[^\d]|$)/.exec(rest);
   if (num && Number(num[1]) <= 100) return { level: Number(num[1]) };
   if (/\bON\b|ligad/i.test(t)) return { level: 100 };
   return { level: null };
@@ -59,7 +77,7 @@ async function handleApi(request, env, url) {
     if (!validValue(valor)) return json({ ok: false, error: "Valor inválido" }, 400);
     try {
       const r = await sendToHM(env, id, valor);
-      return json({ ...r, state: parseState(r.body) }, r.ok ? 200 : 502);
+      return json({ ...r, state: parseState(r.body, id) }, r.ok ? 200 : 502);
     } catch (e) {
       return json({ ok: false, error: `Sem resposta da automação (${e.name})` }, 504);
     }
@@ -73,7 +91,7 @@ async function handleApi(request, env, url) {
       for (let d = queue.shift(); d; d = queue.shift()) {
         try {
           const r = await sendToHM(env, d.id, "?");
-          out[d.id] = r.ok ? parseState(r.body) : { level: null };
+          out[d.id] = r.ok ? { ...parseState(r.body, d.id), raw: r.body.slice(0, 160) } : { level: null, raw: `HTTP ${r.status}` };
         } catch {
           out[d.id] = { level: null };
         }
