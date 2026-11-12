@@ -62,7 +62,7 @@ const toggle = (d) => setLevel(d, isOn(d) ? 0 : 100);
 let refreshing = false;
 
 async function refresh(silent = false) {
-  if (refreshing) return; // evita consultas sobrepostas
+  if (refreshing || !$("#pinBox").hidden) return; // evita consultas sobrepostas / sem PIN
   refreshing = true;
   const btn = $("#refresh");
   if (!silent) btn.classList.add("spin");
@@ -292,7 +292,37 @@ document.querySelectorAll("[data-scene]").forEach((b) =>
 );
 
 $("#refresh").addEventListener("click", () => refresh());
-document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && refresh(true));
+// ---------- Modo econômico: consulta rápida só enquanto alguém está usando ----------
+const POLL = [
+  { idle: 2 * 60_000, every: 3000 },  // até 2 min sem mexer: 3 s
+  { idle: 10 * 60_000, every: 5000 }, // até 10 min: 5 s
+  { idle: Infinity, every: 10_000 },  // depois disso: 10 s
+];
+let lastActivity = Date.now();
+let pollTimer = null;
+const pollDelay = () => POLL.find((p) => Date.now() - lastActivity < p.idle).every;
+
+function schedulePoll(ms) {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    if (document.visibilityState === "visible") await refresh(true);
+    if (document.visibilityState === "visible") schedulePoll(pollDelay());
+    // em segundo plano o ciclo para; volta no visibilitychange
+  }, ms);
+}
+function bumpActivity() {
+  const wasSlow = pollDelay() > POLL[0].every;
+  lastActivity = Date.now();
+  if (wasSlow && pollTimer !== null) schedulePoll(0); // estava devagar: lê na hora
+}
+["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) =>
+  window.addEventListener(ev, bumpActivity, { passive: true })
+);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || pollTimer === null) return;
+  lastActivity = Date.now();
+  schedulePoll(0);
+});
 
 // ---------- Início ----------
 sliderSetup();
@@ -315,5 +345,5 @@ renderAll();
   }
   if (needPin) askPin(); // refresh acontece após digitar o PIN
   else refresh(true);
-  setInterval(() => document.visibilityState === "visible" && refresh(true), 1000);
+  schedulePoll(POLL[0].every);
 })();
