@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hm-iluminacao",
+  "main": "src/worker.js",
+  // >= 2024-09-02 habilita portas customizadas (:9090) no fetch()
+  "compatibility_date": "2025-10-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "HM_BASE": "http://300504.homemanager.com.br:9090"
+  }
+  // PIN opcional (recomendado): npx wrangler secret put APP_PIN
+}
